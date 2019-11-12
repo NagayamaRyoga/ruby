@@ -11634,3 +11634,46 @@ rb_iseq_ibf_load_extra_data(VALUE str)
     RB_GC_GUARD(loader_obj);
     return extra_str;
 }
+
+/* define wrapper class methods (RubyVM::InstructionSequence::Dumper) */
+
+static void
+dumper_mark(void *ptr)
+{
+    rb_gc_mark((VALUE)ptr);
+}
+
+static size_t
+dumper_memsize(const void *ptr)
+{
+    VALUE dump_obj = (VALUE)ptr;
+    return ibf_dump_memsize((const struct ibf_dump *)DATA_PTR(dump_obj));
+}
+
+static const rb_data_type_t dumper_data_type = {
+    "T_IMEMO/ibf_dump",
+    {dumper_mark, NULL, dumper_memsize,},
+    0, 0, RUBY_TYPED_FREE_IMMEDIATELY|RUBY_TYPED_WB_PROTECTED
+};
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Dumper.new() -> dumper
+ *
+ *  Create a iseq dumper object
+ */
+VALUE
+rb_dumper_s_new(VALUE self)
+{
+    VALUE obj;
+    VALUE dump_obj;
+    struct ibf_dump *dump;
+
+    dump_obj = TypedData_Make_Struct(0, struct ibf_dump, &ibf_dump_type, dump);
+    ibf_dump_setup(dump, dump_obj);
+
+    obj = TypedData_Wrap_Struct(rb_cDumper, &dumper_data_type, (void *)dump_obj);
+    RB_OBJ_WRITTEN(obj, Qundef, dump_obj);
+
+    return obj;
+}

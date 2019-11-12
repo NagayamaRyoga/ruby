@@ -33,6 +33,8 @@ VALUE rb_cISeq;
 static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
+VALUE rb_cDumper;
+
 #if VM_INSN_INFO_TABLE_IMPL == 2
 static struct succ_index_table *succ_index_table_create(int max_pos, int *data, int size);
 static unsigned int *succ_index_table_invert(int max_pos, struct succ_index_table *sd, int size);
@@ -3582,4 +3584,9 @@ Init_ISeq(void)
 
     rb_undef_method(CLASS_OF(rb_cISeq), "translate");
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");
+
+    /* declare ::RubyVM::InstructionSequence::Dumper */
+    rb_cDumper = rb_define_class_under(rb_cISeq, "Dumper", rb_cObject);
+    rb_undef_alloc_func(rb_cDumper);
+    rb_define_singleton_method(rb_cDumper, "new", rb_dumper_s_new, 0);
 }
