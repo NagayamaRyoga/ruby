@@ -3447,6 +3447,19 @@ rb_loader_s_new(VALUE self, VALUE binary)
     return rb_ibf_load_wrapper_new(binary);
 }
 
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Loader#load_iseq(iseq, iseq_index) -> iseqw
+ *
+ *  Load an iseq object from binary format String object
+ *  created by RubyVM::InstructionSequence::Dumper#dump_iseq.
+ */
+static VALUE
+rb_loader_load_iseq(VALUE self, VALUE iseq_index)
+{
+    const rb_iseq_t *iseq = rb_ibf_load_load_iseq(loader_check(self), FIX2INT(iseq_index));
+    return iseqw_new(iseq);
+}
 
 #if VM_INSN_INFO_TABLE_IMPL == 2
 
@@ -3668,5 +3681,5 @@ Init_ISeq(void)
 
     rb_define_singleton_method(rb_cLoader, "new", rb_loader_s_new, 1);
 
-    // rb_define_method(rb_cLoader, "load_iseq", rb_loader_load_iseq, 1);
+    rb_define_method(rb_cLoader, "load_iseq", rb_loader_load_iseq, 1);
 }

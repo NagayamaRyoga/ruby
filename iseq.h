@@ -185,7 +185,7 @@ VALUE rb_ibf_dump_binary(struct ibf_dump *dump);
 
 struct ibf_load;
 VALUE rb_ibf_load_wrapper_new(VALUE str);
-const rb_iseq_t *rb_ibf_load_load_iseq(struct ibf_load *load, int iseq_index);
+const rb_iseq_t *rb_ibf_load_load_iseq(const struct ibf_load *load, int iseq_index);
 
 /* iseq.c */
 VALUE rb_iseq_load(VALUE data, VALUE parent, VALUE opt);
