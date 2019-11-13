@@ -11699,3 +11699,37 @@ VALUE rb_ibf_dump_binary(struct ibf_dump *dump)
 {
     return ibf_dump_dump_all(dump, Qnil);
 }
+
+static void
+loader_mark(void *ptr)
+{
+    rb_gc_mark((VALUE)ptr);
+}
+
+static size_t
+loader_memsize(const void *ptr)
+{
+    VALUE loader_obj = (VALUE)ptr;
+    return ibf_loader_memsize((const struct ibf_load *)DATA_PTR(loader_obj));
+}
+
+static const rb_data_type_t loader_data_type = {
+    "T_IMEMO/ibf_load",
+    {loader_mark, NULL, loader_memsize,},
+    0, 0, RUBY_TYPED_FREE_IMMEDIATELY|RUBY_TYPED_WB_PROTECTED
+};
+
+VALUE
+rb_ibf_load_wrapper_new(VALUE str)
+{
+    VALUE obj;
+    struct ibf_load *load;
+    VALUE loader_obj = TypedData_Make_Struct(0, struct ibf_load, &ibf_load_type, load);
+
+    ibf_load_setup(load, loader_obj, str);
+
+    obj = TypedData_Wrap_Struct(rb_cLoader, &loader_data_type, (void *)loader_obj);
+    RB_OBJ_WRITTEN(obj, Qundef, loader_obj);
+
+    return obj;
+}

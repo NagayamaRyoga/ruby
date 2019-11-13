@@ -34,6 +34,7 @@ static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
 VALUE rb_cDumper;
+VALUE rb_cLoader;
 
 #if VM_INSN_INFO_TABLE_IMPL == 2
 static struct succ_index_table *succ_index_table_create(int max_pos, int *data, int size);
@@ -3393,7 +3394,7 @@ dumper_check(VALUE dumper)
  *  call-seq:
  *     RubyVM::InstructionSequence::Dumper.new() -> dumper
  *
- *  Create a iseq dumper object
+ *  Create a iseq dumper object.
  */
 static VALUE
 rb_dumper_s_new(VALUE self)
@@ -3423,6 +3424,27 @@ static VALUE
 rb_dumper_binary(VALUE self)
 {
     return rb_ibf_dump_binary(dumper_check(self)); /* opt parameter not supported yet */
+}
+
+/* define wrapper class methods (RubyVM::InstructionSequence::Loader) */
+
+static struct ibf_load *
+loader_check(VALUE loader)
+{
+    VALUE load_obj = (VALUE)DATA_PTR(loader);
+    return (struct ibf_load *)DATA_PTR(load_obj);
+}
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Loader.new(binary) -> loader
+ *
+ *  Create a iseq loader object.
+ */
+static VALUE
+rb_loader_s_new(VALUE self, VALUE binary)
+{
+    return rb_ibf_load_wrapper_new(binary);
 }
 
 
@@ -3639,4 +3661,12 @@ Init_ISeq(void)
 
     rb_define_method(rb_cDumper, "dump_iseq", rb_dumper_dump_iseq, 1);
     rb_define_method(rb_cDumper, "binary", rb_dumper_binary, 0);
+
+    /* declare ::RubyVM::InstructionSequence::Loader */
+    rb_cLoader = rb_define_class_under(rb_cISeq, "Loader", rb_cObject);
+    rb_undef_alloc_func(rb_cLoader);
+
+    rb_define_singleton_method(rb_cLoader, "new", rb_loader_s_new, 1);
+
+    // rb_define_method(rb_cLoader, "load_iseq", rb_loader_load_iseq, 1);
 }

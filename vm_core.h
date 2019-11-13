@@ -1042,6 +1042,7 @@ RUBY_EXTERN VALUE rb_cRubyVM;
 RUBY_EXTERN VALUE rb_mRubyVMFrozenCore;
 RUBY_EXTERN VALUE rb_block_param_proxy;
 RUBY_EXTERN VALUE rb_cDumper;
+RUBY_EXTERN VALUE rb_cLoader;
 RUBY_SYMBOL_EXPORT_END
 
 #define GetProcPtr(obj, ptr) \

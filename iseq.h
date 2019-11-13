@@ -178,6 +178,15 @@ void rb_iseq_build_from_ary(rb_iseq_t *iseq, VALUE misc,
 			    VALUE exception, VALUE body);
 void rb_iseq_mark_insn_storage(struct iseq_compile_data_storage *arena);
 
+struct ibf_dump;
+VALUE rb_ibf_dump_wrapper_new(void);
+VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq);
+VALUE rb_ibf_dump_binary(struct ibf_dump *dump);
+
+struct ibf_load;
+VALUE rb_ibf_load_wrapper_new(VALUE str);
+const rb_iseq_t *rb_ibf_load_load_iseq(struct ibf_load *load, int iseq_index);
+
 /* iseq.c */
 VALUE rb_iseq_load(VALUE data, VALUE parent, VALUE opt);
 VALUE rb_iseq_parameters(const rb_iseq_t *iseq, int is_proc);
@@ -198,11 +207,6 @@ VALUE rb_iseq_method_name(const rb_iseq_t *iseq);
 void rb_iseq_code_location(const rb_iseq_t *iseq, int *first_lineno, int *first_column, int *last_lineno, int *last_column);
 
 void rb_iseq_remove_coverage_all(void);
-
-struct ibf_dump;
-VALUE rb_ibf_dump_wrapper_new(void);
-VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq);
-VALUE rb_ibf_dump_binary(struct ibf_dump *dump);
 
 /* proc.c */
 const rb_iseq_t *rb_method_iseq(VALUE body);
