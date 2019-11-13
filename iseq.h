@@ -199,7 +199,10 @@ void rb_iseq_code_location(const rb_iseq_t *iseq, int *first_lineno, int *first_
 
 void rb_iseq_remove_coverage_all(void);
 
-VALUE rb_dumper_s_new(VALUE self);
+struct ibf_dump;
+VALUE rb_ibf_dump_wrapper_new(void);
+VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq);
+VALUE rb_ibf_dump_binary(struct ibf_dump *dump);
 
 /* proc.c */
 const rb_iseq_t *rb_method_iseq(VALUE body);

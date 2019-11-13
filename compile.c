@@ -11374,28 +11374,23 @@ ibf_dump_setup(struct ibf_dump *dump, VALUE dumper_obj)
     dump->current_buffer = &dump->global_buffer;
 }
 
-VALUE
-rb_iseq_ibf_dump(const rb_iseq_t *iseq, VALUE opt)
+static struct ibf_dump *
+rb_ibf_dump_new(VALUE *dump_obj)
 {
     struct ibf_dump *dump;
+
+    *dump_obj = TypedData_Make_Struct(0, struct ibf_dump, &ibf_dump_type, dump);
+    ibf_dump_setup(dump, *dump_obj);
+
+    return dump;
+}
+
+static VALUE
+ibf_dump_dump_all(struct ibf_dump *dump, VALUE opt)
+{
     struct ibf_header header = {{0}};
-    VALUE dump_obj;
-    VALUE str;
 
-    if (iseq->body->parent_iseq != NULL ||
-        iseq->body->local_iseq != iseq) {
-        rb_raise(rb_eRuntimeError, "should be top of iseq");
-    }
-    if (RTEST(ISEQ_COVERAGE(iseq))) {
-        rb_raise(rb_eRuntimeError, "should not compile with coverage");
-    }
-
-    dump_obj = TypedData_Make_Struct(0, struct ibf_dump, &ibf_dump_type, dump);
-    ibf_dump_setup(dump, dump_obj);
-
-    ibf_dump_write(dump, &header, sizeof(header));
-    ibf_dump_write(dump, RUBY_PLATFORM, strlen(RUBY_PLATFORM) + 1);
-    ibf_dump_iseq(dump, iseq);
+    rb_str_resize(dump->global_buffer.str, 0);
 
     header.magic[0] = 'Y'; /* YARB */
     header.magic[1] = 'A';
@@ -11403,6 +11398,10 @@ rb_iseq_ibf_dump(const rb_iseq_t *iseq, VALUE opt)
     header.magic[3] = 'B';
     header.major_version = IBF_MAJOR_VERSION;
     header.minor_version = IBF_MINOR_VERSION;
+
+    ibf_dump_write(dump, &header, sizeof(header));
+    ibf_dump_write(dump, RUBY_PLATFORM, strlen(RUBY_PLATFORM) + 1);
+
     ibf_dump_iseq_list(dump, &header);
     ibf_dump_object_list(dump, &header.global_object_list_offset, &header.global_object_list_size);
     header.size = ibf_dump_pos(dump);
@@ -11419,7 +11418,29 @@ rb_iseq_ibf_dump(const rb_iseq_t *iseq, VALUE opt)
 
     ibf_dump_overwrite(dump, &header, sizeof(header), 0);
 
-    str = dump->global_buffer.str;
+    return dump->global_buffer.str;
+}
+
+VALUE
+rb_iseq_ibf_dump(const rb_iseq_t *iseq, VALUE opt)
+{
+    struct ibf_dump *dump;
+    VALUE dump_obj;
+    VALUE str;
+
+    if (iseq->body->parent_iseq != NULL ||
+        iseq->body->local_iseq != iseq) {
+        rb_raise(rb_eRuntimeError, "should be top of iseq");
+    }
+    if (RTEST(ISEQ_COVERAGE(iseq))) {
+        rb_raise(rb_eRuntimeError, "should not compile with coverage");
+    }
+
+    dump = rb_ibf_dump_new(&dump_obj);
+
+    ibf_dump_iseq(dump, iseq);
+
+    str = ibf_dump_dump_all(dump, opt);
     ibf_dump_free(dump);
     DATA_PTR(dump_obj) = NULL;
     RB_GC_GUARD(dump_obj);
@@ -11635,8 +11656,6 @@ rb_iseq_ibf_load_extra_data(VALUE str)
     return extra_str;
 }
 
-/* define wrapper class methods (RubyVM::InstructionSequence::Dumper) */
-
 static void
 dumper_mark(void *ptr)
 {
@@ -11656,24 +11675,27 @@ static const rb_data_type_t dumper_data_type = {
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY|RUBY_TYPED_WB_PROTECTED
 };
 
-/*
- *  call-seq:
- *     RubyVM::InstructionSequence::Dumper.new() -> dumper
- *
- *  Create a iseq dumper object
- */
 VALUE
-rb_dumper_s_new(VALUE self)
+rb_ibf_dump_wrapper_new(void)
 {
     VALUE obj;
     VALUE dump_obj;
     struct ibf_dump *dump;
 
-    dump_obj = TypedData_Make_Struct(0, struct ibf_dump, &ibf_dump_type, dump);
-    ibf_dump_setup(dump, dump_obj);
+    dump = rb_ibf_dump_new(&dump_obj);
 
     obj = TypedData_Wrap_Struct(rb_cDumper, &dumper_data_type, (void *)dump_obj);
     RB_OBJ_WRITTEN(obj, Qundef, dump_obj);
 
     return obj;
+}
+
+VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq)
+{
+    return INT2FIX(ibf_dump_iseq(dump, iseq));
+}
+
+VALUE rb_ibf_dump_binary(struct ibf_dump *dump)
+{
+    return ibf_dump_dump_all(dump, Qnil);
 }

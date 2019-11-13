@@ -3380,6 +3380,52 @@ iseqw_s_load_from_binary_extra_data(VALUE self, VALUE str)
     return rb_iseq_ibf_load_extra_data(str);
 }
 
+/* define wrapper class methods (RubyVM::InstructionSequence::Dumper) */
+
+static struct ibf_dump *
+dumper_check(VALUE dumper)
+{
+    VALUE dump_obj = (VALUE)DATA_PTR(dumper);
+    return (struct ibf_dump *)DATA_PTR(dump_obj);
+}
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Dumper.new() -> dumper
+ *
+ *  Create a iseq dumper object
+ */
+static VALUE
+rb_dumper_s_new(VALUE self)
+{
+    return rb_ibf_dump_wrapper_new();
+}
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Dumper#dump_iseq(iseq) -> iseq index
+ *
+ *  Returns iseq index in a serialized binary format data.
+ */
+static VALUE
+rb_dumper_dump_iseq(VALUE self, VALUE iseq)
+{
+    return rb_ibf_dump_dump_iseq(dumper_check(self), iseqw_check(iseq));
+}
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Dumper#binary() -> binary str
+ *
+ *  Returns serialized iseq binary format data as a String object.
+ */
+static VALUE
+rb_dumper_binary(VALUE self)
+{
+    return rb_ibf_dump_binary(dumper_check(self)); /* opt parameter not supported yet */
+}
+
+
 #if VM_INSN_INFO_TABLE_IMPL == 2
 
 /* An implementation of succinct bit-vector for insn_info table.
@@ -3588,5 +3634,9 @@ Init_ISeq(void)
     /* declare ::RubyVM::InstructionSequence::Dumper */
     rb_cDumper = rb_define_class_under(rb_cISeq, "Dumper", rb_cObject);
     rb_undef_alloc_func(rb_cDumper);
+
     rb_define_singleton_method(rb_cDumper, "new", rb_dumper_s_new, 0);
+
+    rb_define_method(rb_cDumper, "dump_iseq", rb_dumper_dump_iseq, 1);
+    rb_define_method(rb_cDumper, "binary", rb_dumper_binary, 0);
 }
