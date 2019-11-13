@@ -11697,7 +11697,7 @@ VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq)
 
 VALUE rb_ibf_dump_binary(struct ibf_dump *dump)
 {
-    return ibf_dump_dump_all(dump, Qnil);
+    return rb_str_dup_frozen(ibf_dump_dump_all(dump, Qnil));
 }
 
 static void
@@ -11726,7 +11726,7 @@ rb_ibf_load_wrapper_new(VALUE str)
     struct ibf_load *load;
     VALUE loader_obj = TypedData_Make_Struct(0, struct ibf_load, &ibf_load_type, load);
 
-    ibf_load_setup(load, loader_obj, str);
+    ibf_load_setup(load, loader_obj, rb_str_dup_frozen(str));
 
     obj = TypedData_Wrap_Struct(rb_cLoader, &loader_data_type, (void *)loader_obj);
     RB_OBJ_WRITTEN(obj, Qundef, loader_obj);
