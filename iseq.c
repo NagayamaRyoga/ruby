@@ -3416,6 +3416,18 @@ rb_dumper_dump_iseq(VALUE self, VALUE iseq)
 
 /*
  *  call-seq:
+ *     RubyVM::InstructionSequence::Dumper#dump_obj(obj) -> obj index
+ *
+ *  Returns obj index in a serialized binary format data.
+ */
+static VALUE
+rb_dumper_dump_obj(VALUE self, VALUE obj)
+{
+    return rb_ibf_dump_dump_obj(dumper_check(self), obj);
+}
+
+/*
+ *  call-seq:
  *     RubyVM::InstructionSequence::Dumper#binary(opt = nil) -> binary str
  *
  *  Returns serialized iseq binary format data as a String object.
@@ -3450,16 +3462,29 @@ rb_loader_s_new(VALUE self, VALUE binary)
 
 /*
  *  call-seq:
- *     RubyVM::InstructionSequence::Loader#load_iseq(iseq, iseq_index) -> iseqw
+ *     RubyVM::InstructionSequence::Loader#load_iseq(iseq_index) -> iseqw
  *
  *  Load an iseq object from binary format String object
- *  created by RubyVM::InstructionSequence::Dumper#dump_iseq.
+ *  created by RubyVM::InstructionSequence::Dumper#binary.
  */
 static VALUE
 rb_loader_load_iseq(VALUE self, VALUE iseq_index)
 {
     const rb_iseq_t *iseq = rb_ibf_load_load_iseq(loader_check(self), FIX2INT(iseq_index));
     return iseqw_new(iseq);
+}
+
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Loader#load_obj(obj_index) -> object
+ *
+ *  Load an object from binary format String object
+ *  created by RubyVM::InstructionSequence::Dumper#binary.
+ */
+static VALUE
+rb_loader_load_obj(VALUE self, VALUE obj_index)
+{
+    return rb_ibf_load_load_obj(loader_check(self), FIX2ULONG(obj_index));
 }
 
 /*
@@ -3686,6 +3711,7 @@ Init_ISeq(void)
     rb_define_singleton_method(rb_cDumper, "new", rb_dumper_s_new, 0);
 
     rb_define_method(rb_cDumper, "dump_iseq", rb_dumper_dump_iseq, 1);
+    rb_define_method(rb_cDumper, "dump_obj", rb_dumper_dump_obj, 1);
     rb_define_method(rb_cDumper, "binary", rb_dumper_binary, -1);
 
     /* declare ::RubyVM::InstructionSequence::Loader */
@@ -3695,5 +3721,6 @@ Init_ISeq(void)
     rb_define_singleton_method(rb_cLoader, "new", rb_loader_s_new, 1);
 
     rb_define_method(rb_cLoader, "load_iseq", rb_loader_load_iseq, 1);
+    rb_define_method(rb_cLoader, "load_obj", rb_loader_load_obj, 1);
     rb_define_method(rb_cLoader, "extra_data", rb_loader_extra_data, 0);
 }
