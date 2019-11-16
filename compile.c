@@ -11695,9 +11695,9 @@ VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq)
     return INT2FIX(ibf_dump_iseq(dump, iseq));
 }
 
-VALUE rb_ibf_dump_binary(struct ibf_dump *dump)
+VALUE rb_ibf_dump_binary(struct ibf_dump *dump, VALUE opt)
 {
-    return rb_str_dup_frozen(ibf_dump_dump_all(dump, Qnil));
+    return rb_str_dup_frozen(ibf_dump_dump_all(dump, opt));
 }
 
 static void

@@ -181,7 +181,7 @@ void rb_iseq_mark_insn_storage(struct iseq_compile_data_storage *arena);
 struct ibf_dump;
 VALUE rb_ibf_dump_wrapper_new(void);
 VALUE rb_ibf_dump_dump_iseq(struct ibf_dump *dump, const rb_iseq_t *iseq);
-VALUE rb_ibf_dump_binary(struct ibf_dump *dump);
+VALUE rb_ibf_dump_binary(struct ibf_dump *dump, VALUE opt);
 
 struct ibf_load;
 VALUE rb_ibf_load_wrapper_new(VALUE str);

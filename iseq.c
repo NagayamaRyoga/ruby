@@ -3416,14 +3416,15 @@ rb_dumper_dump_iseq(VALUE self, VALUE iseq)
 
 /*
  *  call-seq:
- *     RubyVM::InstructionSequence::Dumper#binary() -> binary str
+ *     RubyVM::InstructionSequence::Dumper#binary(opt = nil) -> binary str
  *
  *  Returns serialized iseq binary format data as a String object.
  */
 static VALUE
-rb_dumper_binary(VALUE self)
+rb_dumper_binary(int argc, VALUE *argv, VALUE self)
 {
-    return rb_ibf_dump_binary(dumper_check(self)); /* opt parameter not supported yet */
+    VALUE opt = rb_check_arity(argc, 0, 1) == 1 ?  argv[0] : Qnil;
+    return rb_ibf_dump_binary(dumper_check(self), opt);
 }
 
 /* define wrapper class methods (RubyVM::InstructionSequence::Loader) */
@@ -3673,7 +3674,7 @@ Init_ISeq(void)
     rb_define_singleton_method(rb_cDumper, "new", rb_dumper_s_new, 0);
 
     rb_define_method(rb_cDumper, "dump_iseq", rb_dumper_dump_iseq, 1);
-    rb_define_method(rb_cDumper, "binary", rb_dumper_binary, 0);
+    rb_define_method(rb_cDumper, "binary", rb_dumper_binary, -1);
 
     /* declare ::RubyVM::InstructionSequence::Loader */
     rb_cLoader = rb_define_class_under(rb_cISeq, "Loader", rb_cObject);
