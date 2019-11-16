@@ -3462,6 +3462,18 @@ rb_loader_load_iseq(VALUE self, VALUE iseq_index)
     return iseqw_new(iseq);
 }
 
+/*
+ *  call-seq:
+ *     RubyVM::InstructionSequence::Loader#extra_data() -> String
+ *
+ *  Load extra data embed into binary format String object.
+ */
+static VALUE
+rb_loader_extra_data(VALUE self)
+{
+    return rb_ibf_load_extra_data(loader_check(self));
+}
+
 #if VM_INSN_INFO_TABLE_IMPL == 2
 
 /* An implementation of succinct bit-vector for insn_info table.
@@ -3683,4 +3695,5 @@ Init_ISeq(void)
     rb_define_singleton_method(rb_cLoader, "new", rb_loader_s_new, 1);
 
     rb_define_method(rb_cLoader, "load_iseq", rb_loader_load_iseq, 1);
+    rb_define_method(rb_cLoader, "extra_data", rb_loader_extra_data, 0);
 }

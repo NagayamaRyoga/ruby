@@ -11734,7 +11734,14 @@ rb_ibf_load_wrapper_new(VALUE str)
     return obj;
 }
 
-const rb_iseq_t *rb_ibf_load_load_iseq(const struct ibf_load *load, int iseq_index)
+const rb_iseq_t *
+rb_ibf_load_load_iseq(const struct ibf_load *load, int iseq_index)
 {
     return ibf_load_iseq(load, (const rb_iseq_t *)(VALUE)iseq_index);
+}
+
+VALUE
+rb_ibf_load_extra_data(const struct ibf_load *load)
+{
+    return rb_str_new(load->global_buffer.buff + load->header->size, load->header->extra_size);
 }
