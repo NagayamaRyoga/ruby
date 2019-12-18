@@ -9516,6 +9516,8 @@ struct ibf_dump_buffer {
     VALUE str;
     VALUE obj_list;      /* [objs] */
     st_table *obj_table; /* obj -> obj number */
+    VALUE obj_offsets;   /* [obj offsets] */
+    int obj_dumped;
 };
 
 struct ibf_dump {
@@ -9655,7 +9657,7 @@ ibf_table_index(struct st_table *table, st_data_t key)
 
 /* dump/load generic */
 
-static void ibf_dump_object_list(struct ibf_dump *dump, ibf_offset_t *obj_list_offset, unsigned int *obj_list_size);
+static void ibf_dump_object_list(struct ibf_dump *dump);
 
 static VALUE ibf_load_object(const struct ibf_load *load, VALUE object_index);
 static rb_iseq_t *ibf_load_iseq(const struct ibf_load *load, const rb_iseq_t *index_iseq);
@@ -10389,11 +10391,13 @@ ibf_dump_iseq_each(struct ibf_dump *dump, const rb_iseq_t *iseq)
     const int local_iseq_index =            ibf_dump_iseq(dump, iseq->body->local_iseq);
     const ibf_offset_t ci_entries_offset =  ibf_dump_ci_entries(dump, iseq);
 
+    ibf_dump_object_list(dump);
+
 #if IBF_ISEQ_ENABLE_LOCAL_BUFFER
     ibf_offset_t local_obj_list_offset;
     unsigned int local_obj_list_size;
 
-    ibf_dump_object_list(dump, &local_obj_list_offset, &local_obj_list_size);
+    ibf_dump_object_offsets(dump, &local_obj_list_offset, &local_obj_list_size);
 #endif
 
     ibf_offset_t body_offset = ibf_dump_pos(dump);
@@ -11300,27 +11304,35 @@ ibf_load_object(const struct ibf_load *load, VALUE object_index)
 }
 
 static void
-ibf_dump_object_list(struct ibf_dump *dump, ibf_offset_t *obj_list_offset, unsigned int *obj_list_size)
+ibf_dump_object_list(struct ibf_dump *dump)
 {
     VALUE obj_list = dump->current_buffer->obj_list;
-    VALUE list = rb_ary_tmp_new(RARRAY_LEN(obj_list));
-    int i, size;
+    VALUE list = dump->current_buffer->obj_offsets;
+    int i;
 
-    for (i=0; i<RARRAY_LEN(obj_list); i++) {
+    for (i = dump->current_buffer->obj_dumped; i < RARRAY_LEN(obj_list); i++) {
         VALUE obj = RARRAY_AREF(obj_list, i);
         ibf_offset_t offset = ibf_dump_object_object(dump, obj_list, obj);
-        rb_ary_push(list, UINT2NUM(offset));
+        rb_ary_store(list, i, UINT2NUM(offset));
     }
-    size = i;
+
+    dump->current_buffer->obj_dumped = RARRAY_LENINT(obj_list);
+}
+
+static void
+ibf_dump_object_offsets(struct ibf_dump *dump, ibf_offset_t *obj_list_offset, unsigned int *obj_list_size)
+{
+    VALUE list = dump->current_buffer->obj_offsets;
+    unsigned int i;
+
     IBF_W_ALIGN(ibf_offset_t);
     *obj_list_offset = ibf_dump_pos(dump);
+    *obj_list_size = (unsigned int)RARRAY_LEN(dump->current_buffer->obj_offsets);
 
-    for (i=0; i<size; i++) {
+    for (i = 0; i < *obj_list_size; i++) {
         ibf_offset_t offset = NUM2UINT(RARRAY_AREF(list, i));
         IBF_WV(offset);
     }
-
-    *obj_list_size = size;
 }
 
 static void
@@ -11329,6 +11341,7 @@ ibf_dump_mark(void *ptr)
     struct ibf_dump *dump = (struct ibf_dump *)ptr;
     rb_gc_mark(dump->global_buffer.str);
     rb_gc_mark(dump->global_buffer.obj_list);
+    rb_gc_mark(dump->global_buffer.obj_offsets);
     rb_gc_mark(dump->iseq_list);
 }
 
@@ -11368,8 +11381,10 @@ ibf_dump_setup(struct ibf_dump *dump, VALUE dumper_obj)
 {
     RB_OBJ_WRITE(dumper_obj, &dump->iseq_list, rb_ary_tmp_new(0));
     RB_OBJ_WRITE(dumper_obj, &dump->global_buffer.obj_list, ibf_dump_object_list_new(&dump->global_buffer.obj_table));
+    RB_OBJ_WRITE(dumper_obj, &dump->global_buffer.obj_offsets, rb_ary_tmp_new(0));
     RB_OBJ_WRITE(dumper_obj, &dump->global_buffer.str, rb_str_new(0, 0));
     dump->iseq_table = st_init_numtable(); /* need free */
+    dump->global_buffer.obj_dumped = 0;
 
     dump->current_buffer = &dump->global_buffer;
 }
@@ -11403,7 +11418,8 @@ ibf_dump_dump_all(struct ibf_dump *dump, VALUE opt)
     ibf_dump_write(dump, RUBY_PLATFORM, strlen(RUBY_PLATFORM) + 1);
 
     ibf_dump_iseq_list(dump, &header);
-    ibf_dump_object_list(dump, &header.global_object_list_offset, &header.global_object_list_size);
+    ibf_dump_object_list(dump);
+    ibf_dump_object_offsets(dump, &header.global_object_list_offset, &header.global_object_list_size);
     header.size = ibf_dump_pos(dump);
 
     if (RTEST(opt)) {
